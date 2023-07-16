@@ -9,6 +9,7 @@ startup
 	vars.Helper.LoadSceneManager = true;
 	vars.Helper.AlertLoadless();
 	settings.Add("burger", false, "Split on burger thrown");
+	settings.Add("IL7", false, "Start on Day 7");
 }
 
 init
@@ -30,8 +31,8 @@ update
 
 start
 {
-	//Split when moving form Main Menu to Game Scene
-    if((old.activeScene == "MANAGER" && current.activeScene == "SampleScene") && (current.day == 0 || current.day == 2)){
+	//Start when moving from Main Menu to Game Scene
+    if((old.activeScene == "MANAGER" && current.activeScene == "SampleScene") && (current.day == 0 || current.day == 2 || (settings["IL7"] && current.day == 6))){
 		return true;
 	}
 }

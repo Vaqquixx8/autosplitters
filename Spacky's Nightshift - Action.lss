@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Run version="1.7.0">
+  <GameIcon />
+  <GameName>Spacky's Nightshift</GameName>
+  <CategoryName>Action</CategoryName>
+  <LayoutPath>
+  </LayoutPath>
+  <Metadata>
+    <Run id="" />
+    <Platform usesEmulator="False">
+    </Platform>
+    <Region>
+    </Region>
+    <Variables />
+  </Metadata>
+  <Offset>00:00:00</Offset>
+  <AttemptCount>5</AttemptCount>
+  <AttemptHistory>
+    <Attempt id="1" started="07/16/2023 08:22:35" isStartedSynced="True" ended="07/16/2023 08:22:37" isEndedSynced="True" />
+    <Attempt id="2" started="07/16/2023 08:22:38" isStartedSynced="True" ended="07/16/2023 08:22:43" isEndedSynced="True" />
+    <Attempt id="3" started="07/16/2023 08:22:45" isStartedSynced="True" ended="07/16/2023 08:22:53" isEndedSynced="True" />
+    <Attempt id="4" started="07/16/2023 08:22:54" isStartedSynced="True" ended="07/16/2023 08:23:19" isEndedSynced="True" />
+    <Attempt id="5" started="07/16/2023 08:23:21" isStartedSynced="True" ended="07/16/2023 08:23:24" isEndedSynced="True" />
+  </AttemptHistory>
+  <Segments>
+    <Segment>
+      <Name>start</Name>
+      <Icon />
+      <SplitTimes>
+        <SplitTime name="Personal Best" />
+      </SplitTimes>
+      <BestSegmentTime />
+      <SegmentHistory />
+    </Segment>
+  </Segments>
+  <AutoSplitterSettings />
+</Run>
