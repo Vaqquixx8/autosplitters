@@ -8,8 +8,8 @@ startup
 	vars.Helper.GameName = "Spacky's Nightshift";
 	vars.Helper.LoadSceneManager = true;
 	vars.Helper.AlertLoadless();
-	settings.Add("burger", false, "Split on burger thrown");
-	settings.Add("IL7", false, "Start on Day 7");
+	settings.Add("daySplit", true, "Split on Day Completed");
+	settings.Add("basementSplit", true, "Split on Entering the Basement");
 }
 
 init
@@ -19,7 +19,8 @@ init
 		vars.Helper["day"] = mono.Make<int>("MANAGER", "instance", "currentDay");
 		vars.Helper["won"] = mono.Make<bool>("GAME", "instance", "hasWon");
 		vars.Helper["freezeMovement"] = mono.Make<bool>("PlayerController", "instance", "frozen_movementOnly");
-		vars.Helper["burger"] = mono.Make<bool>("PLAYER", "instance", "holdingFood");
+		vars.Helper["basementEnterFreeze"] = mono.Make<bool>("PlayerController", "instance", "frozen");
+		vars.Helper["paused"] = mono.Make<bool>("GAME", "instance", "gamePaused");
 		return true;
 	});
 }
@@ -32,7 +33,7 @@ update
 start
 {
 	//Start when moving from Main Menu to Game Scene
-    if((old.activeScene == "MANAGER" && current.activeScene == "SampleScene") && (current.day == 0 || current.day == 2 || (settings["IL7"] && current.day == 6))){
+    if((old.activeScene == "MANAGER" && current.activeScene == "SampleScene") && (current.day == 0 || current.day == 2 || current.day == 6)){
 		return true;
 	}
 }
@@ -45,14 +46,15 @@ split
 	}
 
 	//Split upon completing level
-	if(current.activeScene == "SampleScene" && current.won && !old.won){
+	if(settings["daySplit"] && current.activeScene == "SampleScene" && current.won && !old.won){
 		return true;
 	}
 
-	//Split on throwing Burger
-	if(settings["burger"] && !current.burger && old.burger){
+	//Split on entering basement
+	if(settings["basementSplit"] && current.basementEnterFreeze && !old.basementEnterFreeze && !current.paused){
 		return true;
 	}
+
 }
 
 isLoading
