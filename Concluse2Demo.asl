@@ -18,7 +18,7 @@ init
 	});
 }
 
-update
+updateb
 {
 	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
 }
@@ -30,16 +30,10 @@ start
 
 split
 {
-	//if(current.activeScene)
+	
 }
 
 isLoading
 {
-	if (current.activeScene != "01 - EdisonHotel-EXTERIOR" && current.activeScene != "01 - EdisonHotel-EXTERIOR - Twisted" && current.activeScene != "01 - EdisonHotel-EXTERIOR - Boss Fight") 
-	{
-  		return true;
-	}else{
-		return false;
-	}
-
+	return (current.activeScene != "01 - EdisonHotel-EXTERIOR" && current.activeScene != "01 - EdisonHotel-EXTERIOR - Twisted" && current.activeScene != "01 - EdisonHotel-EXTERIOR - Boss Fight");
 }
