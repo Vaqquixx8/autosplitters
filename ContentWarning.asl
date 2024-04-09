@@ -1,7 +1,12 @@
-state("Content Warning") { }
+state("Content Warning") {
+    
+ }
 
 startup
 {
+    vars.quotasCompleted = 1;
+    vars.quotaDay = 0;
+
     Assembly.Load(File.ReadAllBytes("Components/asl-help")).CreateInstance("Unity");
     vars.Helper.GameName = "Content Warning";
     vars.Helper.LoadSceneManager = true;
@@ -13,15 +18,17 @@ startup
 
 init
 {
+            
     vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
     {
         vars.Helper["day"] = mono.Make<int>("SurfaceNetworkHandler", "RoomStats", "CurrentDay");
-        //vars.Helper["day2"] = mono.Make<bool>("SurfaceNetworkHandler", "RoomStats", "ReceivedQuota");
         
         vars.Helper["HP"] = mono.Make<float>("Player","localPlayer", "data", "health");
         vars.Helper["rested"] = mono.Make<bool>("Player","localPlayer", "data", "rested");
 
         vars.Helper["startedGame"] = mono.Make<bool>("SurfaceNetworkHandler","m_Started");
+
+        
         return true;
     });
 
@@ -33,6 +40,11 @@ start
         return true;
     }
 }
+onStart
+{
+    vars.quotaDay = (vars.quotasCompleted * 3) + 1;
+}
+
 update
 {
     current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
@@ -44,7 +56,9 @@ split
         return true;
     }
     if(settings["quotaSleepSplit"]  && !old.rested && current.rested){
-        if(current.day % 4 == 0){
+        if(current.day == vars.quotaDay){
+            vars.quotasCompleted++;
+            vars.quotaDay = (vars.quotasCompleted * 3) + 1;
             return true;
         }
     }
