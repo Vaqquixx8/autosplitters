@@ -18,7 +18,7 @@ init
 	});
 }
 
-updateb
+update
 {
 	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
 }
