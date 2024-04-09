@@ -13,7 +13,7 @@ startup
     vars.Helper.AlertLoadless();
 
     settings.Add("deathSplit", false, "Split on Dying");
-    settings.Add("quotaSleepSplit", false, "Split on Waking Up (For Quota)");
+    settings.Add("quotaSleepSplit", true, "Split on Waking Up (For Quota)");
 }
 
 init
