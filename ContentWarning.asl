@@ -42,6 +42,8 @@ start
 }
 onStart
 {
+    vars.quotasCompleted = 1;
+    vars.quotaDay = 0;
     vars.quotaDay = (vars.quotasCompleted * 3) + 1;
 }
 
