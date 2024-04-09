@@ -34,7 +34,6 @@ start
 }
 update
 {
-    print(current.daysNeeded.ToString());
     current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
     current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
 }
