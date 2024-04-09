@@ -35,7 +35,6 @@ start
 }
 update
 {
-    //print(current.day2.ToString());
     current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
     current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
 }
@@ -53,5 +52,9 @@ split
 isLoading
 {
     return current.loadingScene != current.activeScene;
+}
+reset
+{
+    return current.activeScene == "NewMainMenu";
 }
 
