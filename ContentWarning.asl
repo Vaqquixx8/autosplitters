@@ -54,12 +54,10 @@ update
 {
     current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
     current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
-
-    print(current.HP2.ToString());
 }
 split
 {
-    if(settings["deathSplit"]&& ){
+    if(settings["deathSplit"]){
         if((!old.HP2 && current.HP2) || (old.HP > 0 && current.HP <= 0)){
         return true;
         }
