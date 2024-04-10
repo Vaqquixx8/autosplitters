@@ -4,6 +4,7 @@ state("Content Warning") {
 
 startup
 {
+    //vars.Watch = (Action<string>)(key => { if(vars.Helper[key].Changed) vars.Log(key + ": " + vars.Helper[key].Old + " -> " + vars.Helper[key].Current); });
     vars.quotasCompleted = 1;
     vars.quotaDay = 0;
 
@@ -24,6 +25,8 @@ init
         vars.Helper["day"] = mono.Make<int>("SurfaceNetworkHandler", "RoomStats", "CurrentDay");
         
         vars.Helper["HP"] = mono.Make<float>("Player","localPlayer", "data", "health");
+        vars.Helper["HP2"] = mono.Make<bool>("Player","justDied");
+
         vars.Helper["rested"] = mono.Make<bool>("Player","localPlayer", "data", "rested");
 
         vars.Helper["startedGame"] = mono.Make<bool>("SurfaceNetworkHandler","m_Started");
@@ -51,11 +54,16 @@ update
 {
     current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
     current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
+
+    print(current.HP2.ToString());
 }
 split
 {
-    if(settings["deathSplit"]&& (old.HP > 0 && current.HP <= 0)){
+    if(settings["deathSplit"]&& ){
+        if((!old.HP2 && current.HP2) || (old.HP > 0 && current.HP <= 0)){
         return true;
+        }
+
     }
     if(settings["quotaSleepSplit"]  && !old.rested && current.rested){
         if(current.day == vars.quotaDay){
