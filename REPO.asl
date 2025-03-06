@@ -35,10 +35,12 @@ update
 {
 	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
 	current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
-	print(current.levelName);
+
 	if(current.levelName != old.levelName){
 		vars.previousLevel = old.levelName;
 	}
+		print(current.levelName + " " + vars.previousLevel);
+
 }
 start
 {
@@ -54,9 +56,18 @@ start
 
 split
 {
-	if((old.state == 2 && current.state != 2) && ((vars.previousLevel != "Main Menu") && (vars.previousLevel != "Service Station") && (vars.previousLevel != "Truck"))){
-		return true;
+	if(old.state == 2 && current.state != 2){
+		//Check which level we came from and were we are going
+		// We did not come from shops, or main menu
+		if((vars.previousLevel != "Main Menu") && (vars.previousLevel != "Service Station") && (vars.previousLevel != "Truck")){
+			return true;
+		}
+		
 	}
+	if(vars.previousLevel == "Tutorial" && current.levelName == "Main Menu"){
+			// Finished Tutorial
+			return true;
+		}
 
 	return false;
 }               
