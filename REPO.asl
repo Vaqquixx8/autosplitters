@@ -42,7 +42,7 @@ update
 start
 {
 	
-    if(old.state != 2 && current.state == 2 && (current.levelName != "Main Menu" && vars.previousLevel != "Main Menu")){
+    if(old.state != 2 && current.state == 2 && (current.levelName != "Main Menu" && vars.previousLevel == "Main Menu")){
 		return true;
 	}
 	return false;
