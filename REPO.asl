@@ -11,11 +11,7 @@ startup
 	vars.Helper.GameName = "R.E.P.O.";
 	vars.Helper.LoadSceneManager = true;
 	vars.Helper.AlertLoadless();
-
-	// settings.Add("level", true, "Split on Completing Level");
 }
-  // 2 main menu ingame, 3 4 5 0 1 loading?
-
 init
 {
 	vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
@@ -29,15 +25,12 @@ init
          5,        
     };
 	vars.previousLevel = "";
-		//runStarted
 		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
 		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
-		//vars.Helper["isShop"] = mono.Make<bool>("SemiFunc", "RunIsShop()");
+		
 		return true;
 	});
 }
-// Levels:
-// Main Menu: Main
 update
 {
 	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
@@ -45,8 +38,6 @@ update
 	if(current.levelName != old.levelName){
 		vars.previousLevel = old.levelName;
 	}
-    //print(current.levelName.ToString());
-	//print(current.activeScene);
 }
 start
 {
