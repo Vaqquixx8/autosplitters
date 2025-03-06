@@ -24,7 +24,7 @@ init
          4,
          5,        
     };
-	vars.previousLevel = "";
+	vars.previousLevel = "Main Menu";
 		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
 		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
 		
