@@ -1,69 +1,50 @@
-
-state("REPO") 
-{
-
-}
+state("REPO") { }
 
 startup
 {
-	vars.Watch = (Action<string>)(key => { if(vars.Helper[key].Changed) vars.Log(key + ": " + vars.Helper[key].Old + " -> " + vars.Helper[key].Current); });
-	Assembly.Load(File.ReadAllBytes("Components/asl-help")).CreateInstance("Unity");
-	vars.Helper.GameName = "R.E.P.O.";
-	vars.Helper.LoadSceneManager = true;
-	vars.Helper.AlertLoadless();
+    vars.Watch = (Action<string>)(key => { if (vars.Helper[key].Changed) vars.Log(key + ": " + vars.Helper[key].Old + " -> " + vars.Helper[key].Current); });
+    Assembly.Load(File.ReadAllBytes("Components/asl-help")).CreateInstance("Unity");
+    vars.Helper.GameName = "R.E.P.O.";
+    vars.Helper.AlertLoadless();
 }
+
 init
 {
-	vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
-	{
-		vars.states = new int[]
+    vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
     {
-         0,
-         1,
-         3,         
-         4,
-         5,        
-    };
-	vars.previousLevel = "";
-		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
-		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
-		
-		return true;
-	});
+        vars.previousLevel = "";
+        vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
+        vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
+
+        return true;
+    });
 }
+
 update
 {
-	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
-	current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
-	if(current.levelName != old.levelName){
-		vars.previousLevel = old.levelName;
-	}
+    if (old.levelName != current.levelName)
+        vars.previousLevel = old.levelName;
 }
+
 start
 {
-	
-    if(old.state != 2 && current.state == 2 && (vars.previousLevel != "Main Menu")){
-		return true;
-	}
-	return false;
+    return old.state != 2 && current.state == 2 // Main
+        && vars.previousLevel != "Main Menu";
 }
 
 split
 {
-	if((old.state == 2 && current.state != 2) && ((vars.previousLevel != "Main Menu") && (vars.previousLevel != "Service Station") && (vars.previousLevel != "Truck"))){
-		return true;
-	}
+    return old.state == 2 && current.state != 2 // Main
+        && vars.previousLevel != "Main Menu"
+        && vars.previousLevel != "Service Station"
+        && vars.previousLevel != "Truck";
+}         
 
-	return false;
-}               
 isLoading
 {
-	foreach (int state in vars.states)
-    	{
-    	    if (current.state == state)
-    	    {
-    	        return true;
-    	    }
-    	}
-		return false;
+    return current.state == 0  // Load
+        || current.state == 1  // Start
+        || current.state == 3  // Outro
+        || current.state == 4  // End
+        || current.state == 5; // EndWait
 }
