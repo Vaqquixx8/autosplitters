@@ -35,14 +35,18 @@ update
 {
 	current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
 	current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
+	print(current.levelName);
 	if(current.levelName != old.levelName){
 		vars.previousLevel = old.levelName;
 	}
 }
 start
 {
-	
-    if(old.state != 2 && current.state == 2 && (current.levelName != "Main Menu" && vars.previousLevel == "Main Menu")){
+	if(current.levelName == "Lobby Menu")
+	{
+		return false;    
+	} 
+	if(old.state != 2 && current.state == 2 && (current.levelName != "Main Menu" && (vars.previousLevel == "Main Menu" ||vars.previousLevel == "Lobby Menu" ))){
 		return true;
 	}
 	return false;
