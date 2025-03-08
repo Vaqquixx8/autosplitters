@@ -16,14 +16,6 @@ init
 {
 	vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
 	{
-		vars.states = new int[]
-    {
-         0,
-         1,
-         3,         
-         4,
-         5,        
-    };
 	vars.previousLevel = "Main Menu";
 		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
 		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
@@ -73,13 +65,6 @@ split
 }               
 isLoading
 {
-	foreach (int state in vars.states)
-    	{
-    	    if (current.state == state)
-    	    {
-    	        return true;
-    	    }
-    	}
-		return false;
+	return (current.state != 2);
 }
 
