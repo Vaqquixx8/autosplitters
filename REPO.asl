@@ -1,4 +1,3 @@
-
 state("REPO") 
 {
 
@@ -16,55 +15,92 @@ init
 {
 	vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
 	{
-	vars.previousLevel = "Main Menu";
+		// Initialize the previousLevel or else the timer won't start the first time
+		vars.previousLevel = "Main Menu";
+
+		// Get the current level name, and current gameState
 		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
+		vars.Helper["tutorialStage"] = mono.Make<int>("TutorialDirector", "instance", "currentPage");
 		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
+
 		
 		return true;
 	});
 }
 update
 {
-	//current.activeScene = vars.Helper.Scenes.Active.Name ?? current.activeScene;
-	//current.loadingScene = vars.Helper.Scenes.Loaded[0].Name ?? current.loadingScene;
-
-	if(current.levelName != old.levelName){
+	// Game uses custom level system instead of Unity's built in Scenes (for some reason????)
+	if(current.levelName != old.levelName)
+	{
 		vars.previousLevel = old.levelName;
 	}
-		//print(current.levelName + " " + vars.previousLevel);
-
+	//print("Page " + current.tutPage.ToString() + " Progress " + current.tutPro.ToString());	//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 }
 start
 {
-	if(current.levelName == "Lobby Menu")
+	// Time starts after the loading screen, not necessarily when the level changes
+	if(old.state != 2 && current.state == 2)
 	{
-		return false;    
-	} 
-	if(old.state != 2 && current.state == 2 && (current.levelName != "Main Menu" && (vars.previousLevel == "Main Menu" ||vars.previousLevel == "Lobby Menu" ))){
-		return true;
+		// print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
+
+		// If we came from main menu (Lobby Menu is Main Menu too), but we did not swap to and from the main menus
+		if((vars.previousLevel == "Main Menu" || vars.previousLevel == "Lobby Menu") && 
+			(current.levelName != "Main Menu" || current.levelName != "Lobby Menu"))
+		{
+			return true;
+		}
+		
 	}
 	return false;
 }
 
 split
 {
-	if(old.state == 2 && current.state != 2){
-		//Check which level we came from and were we are going
-		// We did not come from shops, or main menu
-		if(((vars.previousLevel != "Main Menu" || current.levelName == "Main Menu")) && (vars.previousLevel != "Service Station") && (vars.previousLevel != "Truck")){
-			return true;
-		}
-		
-	}
-	if(vars.previousLevel == "Tutorial" && current.levelName == "Main Menu"){
-			// Finished Tutorial
-			return true;
+	// If level name changes
+	if(current.levelName != old.levelName){
+		// if going to main menu, ignore, unless coming from completed tutorial
+		if(current.levelName == "Main Menu") 
+		{
+			if(old.levelName == "Tutorial" && current.tutorialStage == 16)
+			{
+				return true;
+			}
+			return false;
 		}
 
+		// If we did not come from truck, or shop
+		if((old.levelName != "Service Station") && (old.levelName != "Truck"))
+		{
+			return true;
+		}
+	}
 	return false;
 }               
 isLoading
 {
+	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay
 	return (current.state != 2);
+}
+reset
+{
+	// Level changed
+	if(current.levelName != old.levelName)
+	{
+		// Going to Main Menu
+		if(current.levelName == "Main Menu")
+		{
+			if(old.levelName == "Tutorial")
+			{
+				// Finished Tutorial, don't reset
+				if(current.tutorialStage == 16)
+				{
+					return false;
+				}
+				return true;
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
