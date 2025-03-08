@@ -82,13 +82,4 @@ isLoading
     	}
 		return false;
 }
-reset
-{
-	if(old.state == 2 && current.state != 2){
-		if(current.levelName == "Main Menu" || vars.previousLevel == "Main Menu"){
-			return true;
-		}
 
-	}
-		return false;
-}
