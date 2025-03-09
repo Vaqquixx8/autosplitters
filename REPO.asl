@@ -41,11 +41,14 @@ start
 	// Time starts after the loading screen, not necessarily when the level changes
 	if(old.state != 2 && current.state == 2)
 	{
-		// print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
+		//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 
-		// If we came from main menu (Lobby Menu is Main Menu too), but we did not swap to and from the main menus
-		if((vars.previousLevel == "Main Menu" || vars.previousLevel == "Lobby Menu") && 
-			(current.levelName != "Main Menu" || current.levelName != "Lobby Menu"))
+		// Don't start in the Main Menu's
+		if(current.levelName == "Main Menu"  || current.levelName == "Lobby Menu")
+		{
+			return false;
+		}
+		else
 		{
 			return true;
 		}
