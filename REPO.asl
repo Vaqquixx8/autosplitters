@@ -44,15 +44,28 @@ start
 		//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 
 		// Don't start in the Main Menu's
-		if(current.levelName == "Main Menu"  || current.levelName == "Lobby Menu")
+		if(current.levelName == "Main Menu" || current.levelName == "Lobby Menu")
 		{
 			return false;
 		}
-		else
+
+		if(vars.previousLevel == "Main Menu")
 		{
-			return true;
+			if(current.levelName != "Lobby Menu")
+			{
+				return true;
+			}
+			return false;
 		}
-		
+		else if(vars.previousLevel == "Lobby Menu")
+		{
+			if(current.levelName != "Main Menu")
+			{
+				return true;
+			}
+			return false;
+		}
+
 	}
 	return false;
 }
