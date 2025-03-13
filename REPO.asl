@@ -34,7 +34,8 @@ update
 	{
 		vars.previousLevel = old.levelName;
 	}
-	//print("Page " + current.tutPage.ToString() + " Progress " + current.tutPro.ToString());	//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
+	//print("Page " + current.tutPage.ToString() + " Progress " + current.tutPro.ToString());	
+	//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 }
 start
 {
@@ -84,8 +85,8 @@ split
 			return false;
 		}
 
-		// If we did not come from truck, or shop
-		if((old.levelName != "Service Station") && (old.levelName != "Truck"))
+		// If we did not come from truck, or shop, check if died as well
+		if((old.levelName != "Service Station") && (old.levelName != "Truck")  && (current.levelName != "Disposal Arena"))
 		{
 			return true;
 		}
@@ -103,16 +104,12 @@ reset
 	if(current.levelName != old.levelName)
 	{
 		// Going to Main Menu
-		if(current.levelName == "Main Menu")
+		if(current.levelName == "Main Menu" || current.levelName == "Disposal Arena")
 		{
-			if(old.levelName == "Tutorial")
+			if(old.levelName == "Tutorial" && current.tutorialStage == 16)
 			{
+				return false;
 				// Finished Tutorial, don't reset
-				if(current.tutorialStage == 16)
-				{
-					return false;
-				}
-				return true;
 			}
 			return true;
 		}
