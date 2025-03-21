@@ -96,7 +96,7 @@ split
 isLoading
 {
 	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay
-	return (current.state != 2);
+	return (current.state != 2 && current.state != 6);
 }
 reset
 {
@@ -116,4 +116,3 @@ reset
 	}
 	return false;
 }
-
