@@ -78,7 +78,7 @@ split
 isLoading
 {
 	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State
-	return (current.state != 2 && current.start != 6);
+	return (current.state != 2 && current.state != 6);
 }
 reset
 {
