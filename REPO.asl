@@ -77,7 +77,7 @@ split
 }               
 isLoading
 {
-	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State
+	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State, unless in tutorial ig idfk
 	return (current.state != 2 && current.state != 6);
 }
 reset
