@@ -8,7 +8,6 @@ startup
 	vars.Watch = (Action<string>)(key => { if(vars.Helper[key].Changed) vars.Log(key + ": " + vars.Helper[key].Old + " -> " + vars.Helper[key].Current); });
 	Assembly.Load(File.ReadAllBytes("Components/asl-help")).CreateInstance("Unity");
 	vars.Helper.GameName = "R.E.P.O.";
-	//ars.Helper.LoadSceneManager = true;
 	vars.Helper.AlertLoadless();
 }
 init
@@ -37,39 +36,22 @@ update
 	//print("Page " + current.tutPage.ToString() + " Progress " + current.tutPro.ToString());	
 	//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 }
-start
+start 
 {
-	// Time starts after the loading screen, not necessarily when the level changes
-	if(old.state != 2 && current.state == 2)
-	{
-		//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
-
-		// Don't start in the Main Menu's
-		if(current.levelName == "Main Menu" || current.levelName == "Lobby Menu")
-		{
-			return false;
-		}
-
-		if(vars.previousLevel == "Main Menu")
-		{
-			if(current.levelName != "Lobby Menu")
-			{
-				return true;
-			}
-			return false;
-		}
-		else if(vars.previousLevel == "Lobby Menu")
-		{
-			if(current.levelName != "Main Menu")
-			{
-				return true;
-			}
-			return false;
-		}
-
-	}
-	return false;
+    // Timer should start only after the loading screen (state changes to 2; Main)
+    if(old.state != 2 && current.state == 2) {
+        // Do not start if the current level is a menu
+        if(current.levelName == "Main Menu" || current.levelName == "Lobby Menu") {
+            return false;
+        }
+        // If coming from a menu (either Main Menu or Lobby Menu), start the timer
+        if(vars.previousLevel == "Main Menu" || vars.previousLevel == "Lobby Menu") {
+            return true;
+        }
+    }
+    return false;
 }
+
 
 split
 {
@@ -95,8 +77,8 @@ split
 }               
 isLoading
 {
-	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay
-	return (current.state != 2 && current.state != 6);
+	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State
+	return (current.state != 2 && current.start != 6);
 }
 reset
 {
