@@ -1,6 +1,6 @@
 state("REPO") 
 {
-
+	
 }
 
 startup
@@ -9,32 +9,29 @@ startup
 	Assembly.Load(File.ReadAllBytes("Components/asl-help")).CreateInstance("Unity");
 	vars.Helper.GameName = "R.E.P.O.";
 	vars.Helper.AlertLoadless();
+
+	settings.Add("levelSplit", true, "Split on completing a Level");
 }
 init
 {
-	vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
-	{
-		// Initialize the previousLevel or else the timer won't start the first time
-		vars.previousLevel = "Main Menu";
+    vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
+    {
+        vars.previousLevel = "Main Menu";
+        vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
+        vars.Helper["tutorialStage"] = mono.Make<int>("TutorialDirector", "instance", "currentPage");
+        vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
 
-		// Get the current level name, and current gameState
-		vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
-		vars.Helper["tutorialStage"] = mono.Make<int>("TutorialDirector", "instance", "currentPage");
-		vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
 
-		
-		return true;
-	});
+        return true;
+    });
 }
 update
 {
-	// Game uses custom level system instead of Unity's built in Scenes (for some reason????)
+	// Game uses custom level system instead of Unity's built in Scenes
 	if(current.levelName != old.levelName)
 	{
 		vars.previousLevel = old.levelName;
 	}
-	//print("Page " + current.tutPage.ToString() + " Progress " + current.tutPro.ToString());	
-	//print("Current: " + current.levelName + "  || Previous: " + vars.previousLevel);
 }
 start 
 {
@@ -55,17 +52,21 @@ start
 
 split
 {
-	// If level name changes
-	if(current.levelName != old.levelName){
-		// if going to main menu, ignore, unless coming from completed tutorial
-		if(current.levelName == "Main Menu") 
+	// Only Split if the user has selected levelSplit
+	if(settings["levelSplit"])
+	{
+		// If level name changes
+		if(current.levelName != old.levelName)
 		{
-			if(old.levelName == "Tutorial" && current.tutorialStage == 16)
+			// if going to main menu, ignore, unless coming from completed tutorial
+			if(current.levelName == "Main Menu") 
 			{
-				return true;
+				if(old.levelName == "Tutorial" && current.tutorialStage == 16)
+				{
+					return true;
+				}
+				return false;
 			}
-			return false;
-		}
 
 		// If we did not come from truck, or shop, check if died as well
 		if((old.levelName != "Service Station") && (old.levelName != "Truck")  && (current.levelName != "Disposal Arena"))
@@ -73,6 +74,8 @@ split
 			return true;
 		}
 	}
+	}
+	
 	return false;
 }               
 isLoading
