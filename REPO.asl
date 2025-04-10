@@ -11,6 +11,14 @@ startup
 	vars.Helper.AlertLoadless();
 
 	settings.Add("levelSplit", true, "Split on completing a Level");
+
+	settings.Add("taxSplit", true, "Split on reaching currency amount");
+    settings.Add("100", false, "100K", "taxSplit");
+    settings.Add("250", false, "250K", "taxSplit");
+    settings.Add("500", false, "500K", "taxSplit");
+    settings.Add("1000", false, "1M", "taxSplit");
+    settings.Add("2000", false, "2M", "taxSplit");
+	
 }
 init
 {
@@ -21,6 +29,7 @@ init
         vars.Helper["tutorialStage"] = mono.Make<int>("TutorialDirector", "instance", "currentPage");
         vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
 
+		vars.Helper["currency"] = mono.Make<int>("CurrencyUI", "instance", "currentHaulValue");
 
         return true;
     });
@@ -68,12 +77,27 @@ split
 				return false;
 			}
 
-		// If we did not come from truck, or shop, check if died as well
-		if((old.levelName != "Service Station") && (old.levelName != "Truck")  && (current.levelName != "Disposal Arena"))
-		{
-			return true;
+			// If we did not come from truck, or shop, check if died as well
+			if((old.levelName != "Service Station") && (old.levelName != "Truck")  && (current.levelName != "Disposal Arena"))
+			{
+				return true;
+			}
 		}
 	}
+	// If playing Taxes%
+	if(settings["taxSplit"])
+	{
+		// Total Earned Amount Changed
+		if(old.currency != current.currency)
+		{
+			// If the amount is equal to the selected category amount, return true
+			if(settings.ContainsKey(current.currency.ToString()) && settings[current.currency.ToString()])
+			{
+				return true;
+			}
+			return false;
+		}
+		return false;
 	}
 	
 	return false;
