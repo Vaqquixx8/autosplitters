@@ -33,6 +33,11 @@ init
 
         return true;
     });
+	vars.currencySplits = new List<int>(){100, 250, 500, 1000, 2000};
+}
+onStart
+{
+    vars.currencySplits = new List<int>(){100, 250, 500, 1000, 2000};
 }
 update
 {
@@ -84,17 +89,39 @@ split
 			}
 		}
 	}
+	//{100, 250, 500, 1000, 2000};
 	// If playing Taxes%
 	if(settings["taxSplit"])
 	{
 		// Total Earned Amount Changed
 		if(old.currency != current.currency)
 		{
-			// If the amount is equal to the selected category amount, return true
-			if(settings.ContainsKey(current.currency.ToString()) && settings[current.currency.ToString()])
+			if(current.currency >= 100 && settings["100"] && vars.currencySplits.Contains(100))
 			{
+				vars.currencySplits.Remove(100);
 				return true;
 			}
+			if(current.currency >= 250 && settings["250"] && vars.currencySplits.Contains(250))
+			{
+				vars.currencySplits.Remove(250);
+				return true;
+			}
+			if(current.currency >= 500 && settings["500"] && vars.currencySplits.Contains(500))
+			{
+				vars.currencySplits.Remove(500);
+				return true;
+			}
+			if(current.currency >= 1000 && settings["1000"] && vars.currencySplits.Contains(1000))
+			{
+				vars.currencySplits.Remove(1000);
+				return true;
+			}
+			if(current.currency >= 2000 && settings["2000"] && vars.currencySplits.Contains(2000))
+			{
+				vars.currencySplits.Remove(2000);
+				return true;
+			}
+
 			return false;
 		}
 		return false;
