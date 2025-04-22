@@ -109,16 +109,16 @@ split
 				if (settings["everyNLevels"])
 				{
 					for(int i = 1; i <= 10; i++)
-                    {
-                        if(settings["nLevel_" + i])
-                        {
-                            if(current.levelsCompleted % i == 0)
+                    			{
+                       			 	if(settings["nLevel_" + i])
+                        			{
+                            				if(current.levelsCompleted % i == 0)
 							{
-							    return true;
+								return true;
 							}
 
-                        }
-                    }
+                        			}
+                    			}
 				}
 			}
 		}
