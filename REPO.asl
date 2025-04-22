@@ -19,10 +19,11 @@ startup
     settings.Add("1000", false, "1M", "taxSplit");
     settings.Add("2000", false, "2M", "taxSplit");
 
-	settings.Add("everyNLevels", true, "Split every n levels", "levelSplit");
+	settings.Add("everyNLevels", true, "Split every n levels (Every 1 Level is on by default)", "levelSplit");
     for (var i = 1; i <= 10; i += 1)
     {
-        settings.Add("nLevel_" + i, false, i + " Levels", "everyNLevels");
+	bool shouldBeDefault = (i == 1);
+        settings.Add("nLevel_" + i, shouldBeDefault, i + " Levels", "everyNLevels");
     }
 
 	settings.Add("specificLevels", true, "Split after specific levels", "levelSplit");
