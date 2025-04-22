@@ -18,7 +18,18 @@ startup
     settings.Add("500", false, "500K", "taxSplit");
     settings.Add("1000", false, "1M", "taxSplit");
     settings.Add("2000", false, "2M", "taxSplit");
-	
+
+	settings.Add("everyNLevels", true, "Split every n levels", "levelSplit");
+    for (var i = 1; i <= 10; i += 1)
+    {
+        settings.Add("nLevel_" + i, false, i + " Levels", "everyNLevels");
+    }
+
+	settings.Add("specificLevels", true, "Split after specific levels", "levelSplit");
+    for (var i = 1; i <= 200; i += 1)
+    {
+        settings.Add("specLevel_" + i, false, "Level " + i, "specificLevels");
+    }
 }
 init
 {
@@ -26,6 +37,7 @@ init
     {
         vars.previousLevel = "Main Menu";
         vars.Helper["levelName"] = mono.MakeString("RunManager", "instance", "levelCurrent", "NarrativeName");
+        vars.Helper["levelsCompleted"] = mono.Make<int>("RunManager", "instance", "levelsCompleted");
         vars.Helper["tutorialStage"] = mono.Make<int>("TutorialDirector", "instance", "currentPage");
         vars.Helper["state"] = mono.Make<int>("GameDirector", "instance", "currentState");
 
@@ -34,9 +46,11 @@ init
         return true;
     });
 	vars.currencySplits = new List<int>(){100, 250, 500, 1000, 2000};
+	vars.daysCompleted = 0;
 }
 onStart
 {
+	vars.daysCompleted = 0;
     vars.currencySplits = new List<int>(){100, 250, 500, 1000, 2000};
 }
 update
@@ -46,6 +60,7 @@ update
 	{
 		vars.previousLevel = old.levelName;
 	}
+	print(current.levelsCompleted.ToString());
 }
 start 
 {
@@ -82,10 +97,29 @@ split
 				return false;
 			}
 
-			// If we did not come from truck, or shop, check if died as well
+			// If we did not come from truck, or shop, check if died as well, Check levelSplits
 			if((old.levelName != "Service Station") && (old.levelName != "Truck")  && (current.levelName != "Disposal Arena"))
 			{
-				return true;
+				// Split after completing specific level
+				if(settings["specificLevels"] && settings["specLevel_" + current.levelsCompleted])
+				{
+					return true;
+				}
+				// Split every n levels
+				if (settings["everyNLevels"])
+				{
+					for(int i = 1; i <= 10; i++)
+                    {
+                        if(settings["nLevel_" + i])
+                        {
+                            if(current.levelsCompleted % i == 0)
+							{
+							    return true;
+							}
+
+                        }
+                    }
+				}
 			}
 		}
 	}
@@ -131,7 +165,7 @@ split
 }               
 isLoading
 {
-	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State, unless in tutorial ig idfk
+	// State 2 is "Main" state, applicable to Main Menu and actual Gameplay, State 6 is "Death" State
 	return (current.state != 2 && current.state != 6);
 }
 reset
