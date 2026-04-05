@@ -11,7 +11,7 @@ startup
 
     vars.debugLog = false;
 
-    vars.RunLevels = new HashSet<string>()
+    vars.RunLevels = new List<string>()
     {
         "Tutorial",
         "Museum of Human Art",
@@ -65,6 +65,10 @@ init
     vars.hookReady = false;
     vars.dataReady = false;
     vars.pendingStart = false;
+	vars.pendingStartTick = 0;
+	vars.startDelayMs = 1000;
+	vars.startArmed = false;
+	vars.runActive = false;
     vars.attachTick = Environment.TickCount;
     vars.hookDelayMs = 3000;
 
@@ -110,15 +114,21 @@ exit
     vars.hookReady = false;
     vars.dataReady = false;
     vars.pendingStart = false;
+    vars.pendingStartTick = 0;
+    vars.startArmed = false;
     vars.previousLevel = "Main Menu";
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
     vars.daysCompleted = 0;
+	vars.runActive = false;
 }
 
 onStart
 {
     vars.daysCompleted = 0;
     vars.pendingStart = false;
+    vars.pendingStartTick = 0;
+    vars.startArmed = false;
+	vars.runActive = false;
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
 }
 
@@ -150,6 +160,7 @@ update
     bool currentIsMenu = current.levelName == "Main Menu" || current.levelName == "Lobby Menu";
     bool currentIsRunLevel = vars.RunLevels.Contains((string)current.levelName);
     bool currentIsSplash = current.levelName == "Splash Screen";
+    bool currentInLoading = current.state != 2 && current.state != 6;
 
     if (!oldDict.ContainsKey("levelName") || !oldDict.ContainsKey("state"))
     {
@@ -159,11 +170,27 @@ update
         if (!vars.pendingStart
             && currentIsRunLevel
             && !currentIsSplash
-            && current.state != 2)
+            && currentInLoading)
         {
             vars.pendingStart = true;
+            vars.pendingStartTick = Environment.TickCount;
+            vars.startArmed = false;
+
             if (vars.debugLog ?? false)
                 print("pendingStart late-set during loading | level=" + current.levelName + " | state=" + current.state);
+        }
+
+        if (vars.pendingStart
+            && !vars.startArmed
+            && currentIsRunLevel
+            && !currentIsSplash
+            && currentInLoading
+            && Environment.TickCount - vars.pendingStartTick >= vars.startDelayMs)
+        {
+            vars.startArmed = true;
+
+            if (vars.debugLog ?? false)
+                print("startArmed set late after delay");
         }
 
         vars.dataReady = true;
@@ -172,6 +199,8 @@ update
 
     vars.dataReady = true;
 
+    bool oldIsMenu = old.levelName == "Main Menu" || old.levelName == "Lobby Menu";
+
     if (vars.debugLog ?? false)
     {
         print("UPDATE DATA READY | level=" + current.levelName
@@ -179,38 +208,80 @@ update
             + " | state=" + current.state
             + " | oldState=" + old.state
             + " | pendingStart=" + vars.pendingStart
+            + " | startArmed=" + vars.startArmed
             + " | runLevel=" + currentIsRunLevel
             + " | splash=" + currentIsSplash);
     }
-
-    bool oldIsMenu = old.levelName == "Main Menu" || old.levelName == "Lobby Menu";
 
     if (current.levelName != old.levelName)
     {
         if (currentIsMenu)
         {
             vars.pendingStart = false;
+            vars.pendingStartTick = 0;
+
             if (vars.debugLog ?? false)
-                print("pendingStart cleared: entered menu");
-        }
-        else if (currentIsRunLevel && !currentIsSplash && oldIsMenu)
-        {
-            vars.pendingStart = true;
-            if (vars.debugLog ?? false)
-                print("pendingStart set from menu transition: " + old.levelName + " -> " + current.levelName);
+                print("pendingStart/startArmed cleared: entered menu");
         }
 
         vars.previousLevel = old.levelName;
     }
 
+    // Detect the first real loading screen into a run from menu
+    if (!vars.pendingStart
+        && oldIsMenu
+        && currentIsRunLevel
+        && !currentIsSplash
+        && currentInLoading)
+    {
+        vars.pendingStart = true;
+        vars.pendingStartTick = Environment.TickCount;
+        vars.startArmed = false;
+		vars.runActive = false;
+
+        if (vars.debugLog ?? false)
+            print("pendingStart set on first loading screen: " + old.levelName + " -> " + current.levelName + " | state=" + current.state);
+    }
+
+    // Fallback in case the menu transition tick was missed
     if (!vars.pendingStart
         && currentIsRunLevel
         && !currentIsSplash
-        && current.state != 2)
+        && currentInLoading)
     {
         vars.pendingStart = true;
+        vars.pendingStartTick = Environment.TickCount;
+        vars.startArmed = false;
+
         if (vars.debugLog ?? false)
             print("pendingStart late-set during loading | level=" + current.levelName + " | state=" + current.state);
+    }
+
+    // Arm the actual start 1 second after loading begins
+    if (vars.pendingStart
+        && !vars.startArmed
+        && currentIsRunLevel
+        && !currentIsSplash
+        && currentInLoading
+        && Environment.TickCount - vars.pendingStartTick >= vars.startDelayMs)
+    {
+        vars.startArmed = true;
+
+        if (vars.debugLog ?? false)
+            print("startArmed set after delay");
+    }
+
+    // If we leave loading before the delay elapsed, cancel the attempt
+    if (vars.pendingStart
+        && !vars.startArmed
+        && (!currentIsRunLevel || currentIsSplash || !currentInLoading))
+    {
+        vars.pendingStart = false;
+        vars.pendingStartTick = 0;
+        vars.startArmed = false;
+
+        if (vars.debugLog ?? false)
+            print("pendingStart cancelled before arm");
     }
 
     return true;
@@ -238,6 +309,7 @@ start
     if (vars.debugLog ?? false)
     {
         print("START CHECK | pending=" + vars.pendingStart
+            + " | armed=" + vars.startArmed
             + " | level=" + current.levelName
             + " | state=" + current.state
             + " | oldState=" + old.state
@@ -246,15 +318,22 @@ start
     }
 
     if (vars.pendingStart
-        && currentIsRunLevel
-        && !currentIsSplash
-        && current.state == 2)
-    {
-        vars.pendingStart = false;
-        if (vars.debugLog ?? false)
-            print("Start triggered");
-        return true;
-    }
+		&& vars.startArmed
+		&& currentIsRunLevel
+		&& !currentIsSplash
+		&& old.state != 2
+		&& current.state == 2)
+	{
+		vars.pendingStart = false;
+		vars.pendingStartTick = 0;
+		vars.startArmed = false;
+		vars.runActive = true;
+
+		if (vars.debugLog ?? false)
+			print("Start triggered on gameplay after delayed arm");
+
+		return true;
+	}
 
     return false;
 }
