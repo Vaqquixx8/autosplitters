@@ -65,12 +65,12 @@ init
     vars.hookReady = false;
     vars.dataReady = false;
     vars.pendingStart = false;
-	vars.pendingStartTick = 0;
-	vars.startDelayMs = 1000;
-	vars.startArmed = false;
-	vars.runActive = false;
+    vars.pendingStartTick = 0;
+    vars.startDelayMs = 1000;
+    vars.startArmed = false;
+    vars.runActive = false;
     vars.attachTick = Environment.TickCount;
-    vars.hookDelayMs = 3000;
+    vars.hookDelayMs = 8000;
 
     vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
     {
@@ -119,7 +119,7 @@ exit
     vars.previousLevel = "Main Menu";
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
     vars.daysCompleted = 0;
-	vars.runActive = false;
+    vars.runActive = false;
 }
 
 onStart
@@ -128,7 +128,7 @@ onStart
     vars.pendingStart = false;
     vars.pendingStartTick = 0;
     vars.startArmed = false;
-	vars.runActive = false;
+    vars.runActive = false;
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
 }
 
@@ -219,6 +219,7 @@ update
         {
             vars.pendingStart = false;
             vars.pendingStartTick = 0;
+            vars.startArmed = false;
 
             if (vars.debugLog ?? false)
                 print("pendingStart/startArmed cleared: entered menu");
@@ -227,7 +228,6 @@ update
         vars.previousLevel = old.levelName;
     }
 
-    // Detect the first real loading screen into a run from menu
     if (!vars.pendingStart
         && oldIsMenu
         && currentIsRunLevel
@@ -237,13 +237,12 @@ update
         vars.pendingStart = true;
         vars.pendingStartTick = Environment.TickCount;
         vars.startArmed = false;
-		vars.runActive = false;
+        vars.runActive = false;
 
         if (vars.debugLog ?? false)
             print("pendingStart set on first loading screen: " + old.levelName + " -> " + current.levelName + " | state=" + current.state);
     }
 
-    // Fallback in case the menu transition tick was missed
     if (!vars.pendingStart
         && currentIsRunLevel
         && !currentIsSplash
@@ -257,7 +256,6 @@ update
             print("pendingStart late-set during loading | level=" + current.levelName + " | state=" + current.state);
     }
 
-    // Arm the actual start 1 second after loading begins
     if (vars.pendingStart
         && !vars.startArmed
         && currentIsRunLevel
@@ -271,7 +269,6 @@ update
             print("startArmed set after delay");
     }
 
-    // If we leave loading before the delay elapsed, cancel the attempt
     if (vars.pendingStart
         && !vars.startArmed
         && (!currentIsRunLevel || currentIsSplash || !currentInLoading))
@@ -318,22 +315,22 @@ start
     }
 
     if (vars.pendingStart
-		&& vars.startArmed
-		&& currentIsRunLevel
-		&& !currentIsSplash
-		&& old.state != 2
-		&& current.state == 2)
-	{
-		vars.pendingStart = false;
-		vars.pendingStartTick = 0;
-		vars.startArmed = false;
-		vars.runActive = true;
+        && vars.startArmed
+        && currentIsRunLevel
+        && !currentIsSplash
+        && old.state != 2
+        && current.state == 2)
+    {
+        vars.pendingStart = false;
+        vars.pendingStartTick = 0;
+        vars.startArmed = false;
+        vars.runActive = true;
 
-		if (vars.debugLog ?? false)
-			print("Start triggered on gameplay after delayed arm");
+        if (vars.debugLog ?? false)
+            print("Start triggered on gameplay after delayed arm");
 
-		return true;
-	}
+        return true;
+    }
 
     return false;
 }
@@ -343,7 +340,6 @@ split
     if (!(vars.hookReady ?? false) || !(vars.dataReady ?? false))
         return false;
 
-    // Tutorial splits
     if (settings["tutorialSplits"])
     {
         if (current.levelName != old.levelName)
@@ -367,7 +363,6 @@ split
         }
     }
 
-    // Level splits
     if (settings["levelSplit"])
     {
         if (current.levelName != old.levelName)
@@ -394,7 +389,6 @@ split
         }
     }
 
-    // Tax splits
     if (settings["taxSplit"])
     {
         if (old.currency != current.currency)
@@ -448,6 +442,8 @@ reset
         if (current.levelName == "Main Menu" || current.levelName == "Disposal Arena")
         {
             vars.pendingStart = false;
+            vars.pendingStartTick = 0;
+            vars.startArmed = false;
 
             if (vars.debugLog ?? false)
                 print("RESET: returned to menu/disposal");
