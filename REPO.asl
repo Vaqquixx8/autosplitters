@@ -160,7 +160,7 @@ update
     bool currentIsMenu = current.levelName == "Main Menu" || current.levelName == "Lobby Menu";
     bool currentIsRunLevel = vars.RunLevels.Contains((string)current.levelName);
     bool currentIsSplash = current.levelName == "Splash Screen";
-    bool currentInLoading = current.state != 2 && current.state != 6;
+    bool currentInLoading = current.state != 2;
 
     if (!oldDict.ContainsKey("levelName") || !oldDict.ContainsKey("state"))
     {
@@ -429,7 +429,7 @@ isLoading
     if (!(vars.hookReady ?? false) || !(vars.dataReady ?? false))
         return false;
 
-    return (current.state != 2 && current.state != 6);
+    return (current.state != 2);
 }
 
 reset
