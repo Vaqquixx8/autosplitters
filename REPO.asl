@@ -10,6 +10,7 @@ startup
     vars.Helper.AlertLoadless();
 
     vars.debugLog = false;
+	vars.debugState = false;
 
     vars.RunLevels = new List<string>()
     {
@@ -19,6 +20,8 @@ startup
         "Swiftbroom Academy",
         "McJannek Station"
     };
+	
+	settings.Add("pre04DeathState", false, "Pre-0.4 death state handling (death state = 6)");
 
     settings.Add("tutorialSplits", true, "Split on completing Tutorial Stage");
     settings.Add("tut1", false, "Move", "tutorialSplits");
@@ -71,6 +74,9 @@ init
     vars.runActive = false;
     vars.attachTick = Environment.TickCount;
     vars.hookDelayMs = 8000;
+	
+	vars.deathState = 7;
+	version = "0.4+";
 
     vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
     {
@@ -139,6 +145,9 @@ update
 
     if (vars.debugLog ?? false)
         print("UPDATE entered");
+	
+	vars.deathState = settings["pre04DeathState"] ? 6 : 7;
+	version = settings["pre04DeathState"] ? "pre-0.4" : "0.4+";
 
     var currentDict = (IDictionary<string, object>)current;
     var oldDict = (IDictionary<string, object>)old;
@@ -160,7 +169,8 @@ update
     bool currentIsMenu = current.levelName == "Main Menu" || current.levelName == "Lobby Menu";
     bool currentIsRunLevel = vars.RunLevels.Contains((string)current.levelName);
     bool currentIsSplash = current.levelName == "Splash Screen";
-    bool currentInLoading = current.state != 2 && current.state != 6;
+    bool currentInLoading = current.state != 2 && current.state != vars.deathState;
+
 
     if (!oldDict.ContainsKey("levelName") || !oldDict.ContainsKey("state"))
     {
@@ -201,7 +211,7 @@ update
 
     bool oldIsMenu = old.levelName == "Main Menu" || old.levelName == "Lobby Menu";
 
-    if (vars.debugLog ?? false)
+    if (vars.debugState ?? false)
     {
         print("UPDATE DATA READY | level=" + current.levelName
             + " | oldLevel=" + old.levelName
@@ -429,7 +439,10 @@ isLoading
     if (!(vars.hookReady ?? false) || !(vars.dataReady ?? false))
         return false;
 
-    return (current.state != 2 && current.state != 6);
+    vars.deathState = settings["pre04DeathState"] ? 6 : 7;
+    version = settings["pre04DeathState"] ? "pre-0.4" : "0.4+";
+
+    return current.state != 2 && current.state != vars.deathState;
 }
 
 reset
