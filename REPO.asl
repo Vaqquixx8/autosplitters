@@ -9,19 +9,18 @@ startup
     vars.Helper.UnityVersion = new Version(2022, 3);
     vars.Helper.AlertLoadless();
 
-    vars.debugLog = false;
-	vars.debugState = false;
-
     vars.RunLevels = new List<string>()
     {
         "Tutorial",
         "Museum of Human Art",
         "Headman Manor",
         "Swiftbroom Academy",
-        "McJannek Station"
+        "McJannek Station",
+        "Sunstone Valley Resort"
     };
-	
-	settings.Add("pre04DeathState", false, "Pre-0.4 death state handling (death state = 6)");
+
+    settings.Add("version04OrHigher", true, "Turn on if R.E.P.O. is version 0.4.0 or higher");
+    settings.SetToolTip("version04OrHigher", "Used only when automatic version detection is unavailable or ambiguous. Leave off for versions below 0.4.0.");
 
     settings.Add("tutorialSplits", true, "Split on completing Tutorial Stage");
     settings.Add("tut1", false, "Move", "tutorialSplits");
@@ -55,28 +54,35 @@ startup
     settings.Add("specificLevels", true, "Split after specific levels", "levelSplit");
     for (var i = 1; i <= 200; i++)
         settings.Add("specLevel_" + i, false, "Level " + i, "specificLevels");
+
+    settings.Add("log", false, "Enable logging");
 }
 
 init
 {
-    if (vars.debugLog ?? false)
-        print("INIT fired");
-
-    vars.previousLevel = "Main Menu";
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
-    vars.daysCompleted = 0;
+
     vars.hookReady = false;
     vars.dataReady = false;
     vars.pendingStart = false;
     vars.pendingStartTick = 0;
     vars.startDelayMs = 1000;
     vars.startArmed = false;
-    vars.runActive = false;
+
     vars.attachTick = Environment.TickCount;
     vars.hookDelayMs = 8000;
-	
-	vars.deathState = 7;
-	version = "0.4+";
+
+    // Clear per-process detection and diagnostic state on every attachment.
+    vars.versionProbeDone = false;
+    vars.detectedVersion = "";
+    vars.detectedPre04 = false;
+    vars.lastLoggedLevel = null;
+    vars.lastDeathMode = "";
+    vars.deathState = settings["version04OrHigher"] ? 7 : 6;
+    version = "unknown (manual fallback)";
+
+    if (settings["log"])
+        print("[REPO] Attached to process " + game.Id + "; waiting for successful TryLoad before probing game version.");
 
     vars.Helper.TryLoad = (Func<dynamic, bool>)(mono =>
     {
@@ -94,8 +100,8 @@ init
             vars.hookReady = true;
             vars.dataReady = false;
 
-            if (vars.debugLog ?? false)
-                print("TryLoad success");
+            if (settings["log"])
+                print("[REPO] Hook ready; waiting for level data.");
 
             return true;
         }
@@ -104,8 +110,8 @@ init
             vars.hookReady = false;
             vars.dataReady = false;
 
-            if (vars.debugLog ?? false)
-                print("TryLoad failed: " + e.Message);
+            if (settings["log"])
+                print("[REPO] TryLoad failed: " + e.Message);
 
             return false;
         }
@@ -114,27 +120,21 @@ init
 
 exit
 {
-    if (vars.debugLog ?? false)
-        print("EXIT fired");
-
     vars.hookReady = false;
     vars.dataReady = false;
     vars.pendingStart = false;
     vars.pendingStartTick = 0;
     vars.startArmed = false;
-    vars.previousLevel = "Main Menu";
+
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
-    vars.daysCompleted = 0;
-    vars.runActive = false;
 }
 
 onStart
 {
-    vars.daysCompleted = 0;
     vars.pendingStart = false;
     vars.pendingStartTick = 0;
     vars.startArmed = false;
-    vars.runActive = false;
+
     vars.currencySplits = new List<int>() { 100, 250, 500, 1000, 2000 };
 }
 
@@ -143,27 +143,184 @@ update
     if (!(vars.hookReady ?? false))
         return false;
 
-    if (vars.debugLog ?? false)
-        print("UPDATE entered");
-	
-	vars.deathState = settings["pre04DeathState"] ? 6 : 7;
-	version = settings["pre04DeathState"] ? "pre-0.4" : "0.4+";
+    // The helper has completed TryLoad before update is allowed through.
+    // Run once per attachment, before selecting the effective death state.
+    if (!vars.versionProbeDone)
+    {
+        vars.versionProbeDone = true;
+        if (settings["log"])
+            print("[REPO] TryLoad complete; probing game version now.");
+        try
+        {
+            // Accept only a
+            // unique length-prefixed 0.x.y string from this attached installation.
+            // Unity's executable metadata can contain the engine version instead.
+            string exePath = modules.First().FileName;
+            string versionPath = Path.Combine(Path.GetDirectoryName(exePath),
+                "REPO_Data", "globalgamemanagers");
+            var candidates = new HashSet<string>();
+            string detectionSource = "globalgamemanagers";
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(versionPath);
+                for (int i = 0; i <= bytes.Length - 9; i++)
+                {
+                    int length = BitConverter.ToInt32(bytes, i);
+                    if (length < 5 || length > 64 || length > bytes.Length - i - 4
+                        || bytes[i + 4] != (byte)'0' || bytes[i + 5] != (byte)'.')
+                        continue;
+
+                    string text = System.Text.Encoding.ASCII.GetString(bytes, i + 4, length);
+                    var match = System.Text.RegularExpressions.Regex.Match(text,
+                        @"\A(0\.\d+\.\d+(?:\.\d+)?)(?:[-+][A-Za-z0-9.-]+)?\z");
+                    Version parsed;
+                    if (match.Success && Version.TryParse(match.Groups[1].Value, out parsed))
+                        candidates.Add(match.Groups[1].Value);
+                }
+            }
+            catch (Exception e)
+            {
+                if (settings["log"])
+                    print("[REPO] globalgamemanagers probe failed: " + e.Message);
+            }
+
+            if (settings["log"])
+                print("[REPO] Version probe: globalgamemanagers candidates=["
+                    + String.Join(", ", candidates.ToArray()) + "]");
+
+            if (candidates.Count != 1)
+            {
+                // Older builds may not put the game version in PlayerSettings.
+                // Read the version UI asset: length-prefixed "Version - ..."
+                // name, 4-byte alignment, then its length-prefixed version value.
+                // Scan in chunks so the whole shared asset file is never loaded.
+                candidates.Clear();
+                detectionSource = "sharedassets0.assets version UI";
+                string assetsPath = Path.Combine(Path.GetDirectoryName(exePath),
+                    "REPO_Data", "sharedassets0.assets");
+                byte[] marker = System.Text.Encoding.ASCII.GetBytes("Version - ");
+                byte[] buffer = new byte[65536];
+                using (var stream = File.OpenRead(assetsPath))
+                using (var reader = new BinaryReader(stream))
+                {
+                    long scanPosition = 0;
+                    while (scanPosition < stream.Length)
+                    {
+                        stream.Position = scanPosition;
+                        int count = stream.Read(buffer, 0, buffer.Length);
+                        if (count < marker.Length)
+                            break;
+                        for (int i = 0; i <= count - marker.Length; i++)
+                        {
+                            if (buffer[i] != marker[0])
+                                continue;
+                            bool matches = true;
+                            for (int j = 1; j < marker.Length; j++)
+                                if (buffer[i + j] != marker[j])
+                                {
+                                    matches = false;
+                                    break;
+                                }
+                            long nameOffset = scanPosition + i - 4;
+                            if (!matches || nameOffset < 0)
+                                continue;
+                            stream.Position = nameOffset;
+                            int nameLength = reader.ReadInt32();
+                            if (nameLength < marker.Length || nameLength > 128
+                                || nameLength > stream.Length - stream.Position)
+                                continue;
+                            string name = System.Text.Encoding.ASCII.GetString(reader.ReadBytes(nameLength));
+                            if (!name.StartsWith("Version - ", StringComparison.Ordinal))
+                                continue;
+                            long valueOffset = (stream.Position + 3L) & ~3L;
+                            if (valueOffset > stream.Length - 4)
+                                continue;
+                            stream.Position = valueOffset;
+                            int valueLength = reader.ReadInt32();
+                            if (valueLength < 5 || valueLength > 64
+                                || valueLength > stream.Length - stream.Position)
+                                continue;
+                            string rawVersion = System.Text.Encoding.ASCII.GetString(reader.ReadBytes(valueLength));
+                            if (settings["log"])
+                                print("[REPO] Version UI: name=\"" + name
+                                    + "\" | value=\"" + rawVersion + "\"");
+                            var match = System.Text.RegularExpressions.Regex.Match(rawVersion.Trim(),
+                                @"\A[vV]?(0\.\d+\.\d+(?:\.\d+)?)(?:[-+][A-Za-z0-9.-]+)?\z");
+                            Version parsed;
+                            if (match.Success && Version.TryParse(match.Groups[1].Value, out parsed))
+                                candidates.Add(match.Groups[1].Value);
+                        }
+                        // Keep enough overlap for markers spanning chunk boundaries.
+                        scanPosition += count - marker.Length + 1;
+                    }
+                }
+                if (settings["log"])
+                    print("[REPO] Version probe: " + detectionSource + " candidates=["
+                        + String.Join(", ", candidates.ToArray()) + "]");
+            }
+
+            if (candidates.Count == 1)
+            {
+                string detected = candidates.First();
+                vars.detectedVersion = detected;
+                vars.detectedPre04 = new Version(detected) < new Version(0, 4);
+                if (settings["log"])
+                    print("[REPO] Detected version=" + detected
+                        + " | version04OrHigher=" + (vars.detectedPre04 ? "OFF" : "ON")
+                        + " | source=" + detectionSource);
+            }
+            else if (settings["log"])
+                print("[REPO] Version detection unavailable/ambiguous; using manual fallback.");
+        }
+        catch (Exception e)
+        {
+            if (settings["log"])
+                print("[REPO] Version probe failed; using manual fallback: " + e.Message);
+        }
+    }
+
+    // Override the behavior internally; the manual checkbox is a fallback.
+    bool useDetectedVersion = vars.detectedVersion != "";
+    bool pre04 = useDetectedVersion ? (bool)vars.detectedPre04 : !settings["version04OrHigher"];
+    vars.deathState = pre04 ? 6 : 7;
+    version = useDetectedVersion ? (string)vars.detectedVersion : "manual " + (pre04 ? "pre-0.4" : "0.4+");
+    string deathMode = version + " | version04OrHigher=" + (pre04 ? "OFF" : "ON")
+        + " | deathState=" + vars.deathState;
+    if (deathMode != vars.lastDeathMode)
+    {
+        vars.lastDeathMode = deathMode;
+        if (settings["log"])
+            print("[REPO] Effective mode: " + deathMode);
+    }
 
     var currentDict = (IDictionary<string, object>)current;
     var oldDict = (IDictionary<string, object>)old;
 
     if (!currentDict.ContainsKey("levelName"))
     {
-        if (vars.debugLog ?? false)
-            print("UPDATE EXIT: current missing levelName");
         return false;
     }
 
     if (!currentDict.ContainsKey("state"))
     {
-        if (vars.debugLog ?? false)
-            print("UPDATE EXIT: current missing state");
         return false;
+    }
+
+    // Log the FIRST readable name as well as changes, including unknown maps.
+    string observedLevel = (string)current.levelName;
+    if (!String.IsNullOrEmpty(observedLevel) && observedLevel != vars.lastLoggedLevel)
+    {
+        vars.lastLoggedLevel = observedLevel;
+        bool known = vars.RunLevels.Contains(observedLevel);
+        if (settings["log"])
+        {
+            print("[REPO] LEVEL NarrativeName=\"" + observedLevel + "\""
+                + " | knownRunLevel=" + known + " | state=" + current.state);
+            if (!known && observedLevel != "Main Menu" && observedLevel != "Lobby Menu"
+                && observedLevel != "Splash Screen" && observedLevel != "Service Station"
+                && observedLevel != "Truck" && observedLevel != "Disposal Arena")
+                print("[REPO] Unknown run level; its NarrativeName is not in RunLevels.");
+        }
     }
 
     bool currentIsMenu = current.levelName == "Main Menu" || current.levelName == "Lobby Menu";
@@ -171,12 +328,8 @@ update
     bool currentIsSplash = current.levelName == "Splash Screen";
     bool currentInLoading = current.state != 2 && current.state != vars.deathState;
 
-
     if (!oldDict.ContainsKey("levelName") || !oldDict.ContainsKey("state"))
     {
-        if (vars.debugLog ?? false)
-            print("UPDATE WARN: old data missing, using current tick only");
-
         if (!vars.pendingStart
             && currentIsRunLevel
             && !currentIsSplash
@@ -185,9 +338,6 @@ update
             vars.pendingStart = true;
             vars.pendingStartTick = Environment.TickCount;
             vars.startArmed = false;
-
-            if (vars.debugLog ?? false)
-                print("pendingStart late-set during loading | level=" + current.levelName + " | state=" + current.state);
         }
 
         if (vars.pendingStart
@@ -198,9 +348,6 @@ update
             && Environment.TickCount - vars.pendingStartTick >= vars.startDelayMs)
         {
             vars.startArmed = true;
-
-            if (vars.debugLog ?? false)
-                print("startArmed set late after delay");
         }
 
         vars.dataReady = true;
@@ -211,31 +358,11 @@ update
 
     bool oldIsMenu = old.levelName == "Main Menu" || old.levelName == "Lobby Menu";
 
-    if (vars.debugState ?? false)
+    if (current.levelName != old.levelName && currentIsMenu)
     {
-        print("UPDATE DATA READY | level=" + current.levelName
-            + " | oldLevel=" + old.levelName
-            + " | state=" + current.state
-            + " | oldState=" + old.state
-            + " | pendingStart=" + vars.pendingStart
-            + " | startArmed=" + vars.startArmed
-            + " | runLevel=" + currentIsRunLevel
-            + " | splash=" + currentIsSplash);
-    }
-
-    if (current.levelName != old.levelName)
-    {
-        if (currentIsMenu)
-        {
-            vars.pendingStart = false;
-            vars.pendingStartTick = 0;
-            vars.startArmed = false;
-
-            if (vars.debugLog ?? false)
-                print("pendingStart/startArmed cleared: entered menu");
-        }
-
-        vars.previousLevel = old.levelName;
+        vars.pendingStart = false;
+        vars.pendingStartTick = 0;
+        vars.startArmed = false;
     }
 
     if (!vars.pendingStart
@@ -247,10 +374,6 @@ update
         vars.pendingStart = true;
         vars.pendingStartTick = Environment.TickCount;
         vars.startArmed = false;
-        vars.runActive = false;
-
-        if (vars.debugLog ?? false)
-            print("pendingStart set on first loading screen: " + old.levelName + " -> " + current.levelName + " | state=" + current.state);
     }
 
     if (!vars.pendingStart
@@ -261,9 +384,6 @@ update
         vars.pendingStart = true;
         vars.pendingStartTick = Environment.TickCount;
         vars.startArmed = false;
-
-        if (vars.debugLog ?? false)
-            print("pendingStart late-set during loading | level=" + current.levelName + " | state=" + current.state);
     }
 
     if (vars.pendingStart
@@ -274,9 +394,6 @@ update
         && Environment.TickCount - vars.pendingStartTick >= vars.startDelayMs)
     {
         vars.startArmed = true;
-
-        if (vars.debugLog ?? false)
-            print("startArmed set after delay");
     }
 
     if (vars.pendingStart
@@ -286,9 +403,6 @@ update
         vars.pendingStart = false;
         vars.pendingStartTick = 0;
         vars.startArmed = false;
-
-        if (vars.debugLog ?? false)
-            print("pendingStart cancelled before arm");
     }
 
     return true;
@@ -298,31 +412,16 @@ start
 {
     if (!(vars.hookReady ?? false))
     {
-        if (vars.debugLog ?? false)
-            print("START EXIT: hookReady false");
         return false;
     }
 
     if (!(vars.dataReady ?? false))
     {
-        if (vars.debugLog ?? false)
-            print("START EXIT: dataReady false");
         return false;
     }
 
     bool currentIsRunLevel = vars.RunLevels.Contains((string)current.levelName);
     bool currentIsSplash = current.levelName == "Splash Screen";
-
-    if (vars.debugLog ?? false)
-    {
-        print("START CHECK | pending=" + vars.pendingStart
-            + " | armed=" + vars.startArmed
-            + " | level=" + current.levelName
-            + " | state=" + current.state
-            + " | oldState=" + old.state
-            + " | runLevel=" + currentIsRunLevel
-            + " | splash=" + currentIsSplash);
-    }
 
     if (vars.pendingStart
         && vars.startArmed
@@ -334,10 +433,9 @@ start
         vars.pendingStart = false;
         vars.pendingStartTick = 0;
         vars.startArmed = false;
-        vars.runActive = true;
 
-        if (vars.debugLog ?? false)
-            print("Start triggered on gameplay after delayed arm");
+        if (settings["log"])
+            print("[REPO] START triggered | level=" + current.levelName);
 
         return true;
     }
@@ -439,8 +537,7 @@ isLoading
     if (!(vars.hookReady ?? false) || !(vars.dataReady ?? false))
         return false;
 
-    vars.deathState = settings["pre04DeathState"] ? 6 : 7;
-    version = settings["pre04DeathState"] ? "pre-0.4" : "0.4+";
+    // update selects the effective death state before timer decisions.
 
     return current.state != 2 && current.state != vars.deathState;
 }
@@ -457,9 +554,6 @@ reset
             vars.pendingStart = false;
             vars.pendingStartTick = 0;
             vars.startArmed = false;
-
-            if (vars.debugLog ?? false)
-                print("RESET: returned to menu/disposal");
 
             if (old.levelName == "Tutorial" && current.tutorialStage == 16)
                 return false;
